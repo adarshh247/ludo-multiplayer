@@ -42,7 +42,7 @@ app.use(express.static(path.join(__dirname, 'dist')));
 
 app.get("/{*splat}", (req, res) => {
   console.log(`[HTTP] Root route accessed by: ${req.ip}`);
-  res.sendFile(path.join(__dirname, "index.html"));
+  res.sendFile(path.join(__dirname, "dist", "index.html"));
 });
 
 const rooms = new Map();
