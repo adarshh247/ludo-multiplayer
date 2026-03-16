@@ -29,11 +29,16 @@ const DEFAULT_STATS: UserStats = {
 //const SOCKET_URL = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
 //  ? 'http://localhost:3000' 
 //  : `${window.location.protocol}//${window.location.hostname}:3000`;
-const SOCKET_URL =
+/*const SOCKET_URL =
   window.location.hostname === 'localhost'
     ? 'http://localhost:3001'
     : `${window.location.protocol}//${window.location.hostname}:3001`;
-
+*/
+const SOCKET_URL =
+  window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+    ? 'http://localhost:3001' 
+    : '/'; // In production, '/' tells the socket to use the current domain without a port
+    
 const App: React.FC = () => {
   const [view, setView] = useState<ViewState>(ViewState.AUTH);
   const [user, setUser] = useState<User | null>(null);
