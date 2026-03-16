@@ -15,6 +15,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from './lib/supabase';
 import { io, Socket } from 'socket.io-client';
 
+const DEV_BYPASS_AUTH = true; // 🔥 set false for production
+
 const DEFAULT_STATS: UserStats = {
   gamesWon: 0,
   gamesLost: 0,
@@ -24,9 +26,13 @@ const DEFAULT_STATS: UserStats = {
 };
 
 // Robust socket URL detection - defaults to port 3000 on the current host
-const SOCKET_URL = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
-  ? 'http://localhost:3000' 
-  : `${window.location.protocol}//${window.location.hostname}:3000`;
+//const SOCKET_URL = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+//  ? 'http://localhost:3000' 
+//  : `${window.location.protocol}//${window.location.hostname}:3000`;
+const SOCKET_URL =
+  window.location.hostname === 'localhost'
+    ? 'http://localhost:3001'
+    : `${window.location.protocol}//${window.location.hostname}:3001`;
 
 const App: React.FC = () => {
   const [view, setView] = useState<ViewState>(ViewState.AUTH);
@@ -48,6 +54,8 @@ const App: React.FC = () => {
   useEffect(() => {
     if (!user) return;
 
+    console.log(`%c[Socket] Initializing connection to: ${SOCKET_URL}`, "color: #3b82f6; font-weight: bold");
+
     // Create socket instance but don't connect immediately
     const socket = io(SOCKET_URL, {
       autoConnect: false,
@@ -60,7 +68,7 @@ const App: React.FC = () => {
 
     // Setup Listeners BEFORE connecting to avoid race conditions
     socket.on('connect', () => {
-      console.log('Socket Connected:', socket.id);
+      console.log(`%c✅ SOCKET CONNECTED: ${socket.id}`, "color: #22c55e; font-weight: bold");
       setSocketConnected(true);
     });
 
@@ -83,8 +91,16 @@ const App: React.FC = () => {
     });
 
     socket.on('connect_error', (err) => {
-      console.warn('Socket Connection Error:', err.message);
+      console.error(`%c❌ CONNECTION ERROR: ${err.message}`, "color: #ef4444");
+      console.error("❌ FULL ERROR OBJECT:", err);
+      console.error("❌ ERROR MESSAGE:", err.message);
+      // This will trigger if the server isn't running on port 3000
       setSocketConnected(false);
+    });
+
+
+    socket.on("error", (err) => {
+      console.error("❌ SOCKET ERROR:", err);
     });
 
     // Start connection
@@ -99,29 +115,51 @@ const App: React.FC = () => {
 
   // Auth & Profile Logic
   useEffect(() => {
-    const initAuth = async () => {
-      const { data: { session: initialSession } } = await supabase.auth.getSession();
-      setSession(initialSession);
-      if (initialSession) {
-        fetchProfile(initialSession.user.id);
-      } else {
-        setLoading(false);
-      }
-    };
-    initAuth();
+  // 🚀 DEV MODE: SKIP AUTH COMPLETELY
+  if (DEV_BYPASS_AUTH) {
+    const mockUser: User = {
+  id: crypto.randomUUID(),
+  name: `DevUser-${Math.floor(Math.random() * 1000)}`,
+  avatarUrl: null,
+  coins: 1000,
+  level: 5,
+  stats: DEFAULT_STATS,
+};
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, newSession) => {
-      setSession(newSession);
-      if (newSession) {
-        fetchProfile(newSession.user.id);
-      } else {
-        setUser(null);
-        setView(ViewState.AUTH);
-        setLoading(false);
-      }
-    });
-    return () => subscription.unsubscribe();
-  }, []);
+    setUser(mockUser);
+    setSession({ user: mockUser });
+    setView(ViewState.LOBBY);
+    setLoading(false);
+    return;
+  }
+
+  // 🔐 PRODUCTION AUTH (SUPABASE)
+  const initAuth = async () => {
+    const { data: { session: initialSession } } = await supabase.auth.getSession();
+    setSession(initialSession);
+    if (initialSession) {
+      fetchProfile(initialSession.user.id);
+    } else {
+      setLoading(false);
+    }
+  };
+
+  initAuth();
+
+  const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, newSession) => {
+    setSession(newSession);
+    if (newSession) {
+      fetchProfile(newSession.user.id);
+    } else {
+      setUser(null);
+      setView(ViewState.AUTH);
+      setLoading(false);
+    }
+  });
+
+  return () => subscription.unsubscribe();
+}, []);
+
 
   const fetchProfile = async (userId: string) => {
     try {

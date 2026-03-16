@@ -1,35 +1,54 @@
-
+import express from 'express';
+import http from 'http';
+import path from 'path';
+import { fileURLToPath } from 'url'; // Needed to replace __dirname
+import { Server } from 'socket.io';
+import cors from 'cors';
+/*
 const express = require('express');
 const http = require('http');
 const path = require('path');
 const { Server } = require('socket.io');
-//const cors = require('cors');
-
+const cors = require('cors');
+*/
 const app = express();
-//app.use(cors());
+app.use(cors());
+
+// In ES Modules, __dirname is not available by default. 
+// Use this code to recreate it:
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const server = http.createServer(app);
-const io = new Server(server);
-/*const io = new Server(server, {
+
+// Configure Socket.io with CORS to allow your frontend port
+//const io = new Server(server, {
+const io = require("socket.io")(server, {
   cors: {
     origin: "*",
-    methods: ["GET", "POST"]
-  },
-  pingTimeout: 10000,
-  pingInterval: 5000
-});*/
+    //origin: ["http://localhost:5173", "http://127.0.0.1:5173"], // Add your Vite/React dev port
+    methods: ["GET", "POST"],
+    credentials: true
+  }
+});
 
-const PORT = 9000;
-app.use(express.static(path.resolve("./"))); // To get absolute path
+const PORT = process.env.PORT || 3001;
 
-// Serve the index.html file
+// Serve static files from the root or 'dist' folder
+app.use(express.static(path.resolve("./")));
+
 app.get("/", (req, res) => {
-  res.sendFile("/index.html");
+  console.log(`[HTTP] Root route accessed by: ${req.ip}`);
+  res.sendFile(path.join(__dirname, "index.html"));
 });
 
 const rooms = new Map();
 
 io.on('connection', (socket) => {
+  // 1. Log the initial connection
+  console.log(`\n[Socket.io] New Connection established!`);
+  console.log(`ID: ${socket.id}`);
+  console.log(`Transport: ${socket.conn.transport.name}`); // Tells you if it's 'websocket' or 'polling'
   console.log('User connected:', socket.id);
 
   socket.on('create_room', ({ user, roomCode }) => {
@@ -48,7 +67,7 @@ io.on('connection', (socket) => {
     };
     rooms.set(roomCode, room);
     socket.join(roomCode);
-    socket.emit('room_updated', room);
+    io.to(roomCode).emit('room_updated', room);
     console.log(`Room created: ${roomCode} by ${user.name}`);
   });
 
@@ -63,7 +82,6 @@ io.on('connection', (socket) => {
       return;
     }
     
-    // Use user ID to check if already in room, update socket ID if they reconnected
     const existingIndex = room.participants.findIndex(p => p.id === user.id);
     if (existingIndex === -1) {
         const participant = {
@@ -80,7 +98,6 @@ io.on('connection', (socket) => {
     }
     
     socket.join(roomCode);
-    // Broadcast to EVERYONE in the room including the joiner
     io.to(roomCode).emit('room_updated', room);
     console.log(`${user.name} joined room: ${roomCode}`);
   });
@@ -90,7 +107,7 @@ io.on('connection', (socket) => {
     if (room && room.participants.length === 4) {
       io.to(roomCode).emit('game_started');
     } else if (room) {
-      socket.emit('error', 'Exactly 4 players required to start Homiies.');
+      socket.emit('error', 'Exactly 4 players required to start.');
     }
   });
 
@@ -126,7 +143,8 @@ io.on('connection', (socket) => {
   });
 });
 
-//const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => {
   console.log(`Socket.io server running on port ${PORT}`);
+  console.log(`--- Server Status ---`);
+  console.log(`✅ Real Backend running on port: ${PORT}`);
 });

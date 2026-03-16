@@ -5,11 +5,15 @@ import { SharpButton } from './ui/SharpButton';
 import { supabase } from '../lib/supabase';
 import { User as UserIcon, Lock, Sparkles, Mail, UserPlus, LogIn } from 'lucide-react';
 
+// 👇 ADD IT HERE
+const DEV_BYPASS_AUTH = true; // set false for production
+
+
 interface AuthPageProps {
   onLogin: (user: any) => void;
 }
 
-export const AuthPage: React.FC<AuthPageProps> = () => {
+export const AuthPage: React.FC<AuthPageProps> = ({ onLogin }) => {
   const [isLogin, setIsLogin] = useState(true);
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
@@ -26,40 +30,61 @@ export const AuthPage: React.FC<AuthPageProps> = () => {
   };
 
   const handleAuth = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setErrorMsg('');
-    setLoading(true);
+  e.preventDefault();
+  setErrorMsg('');
+  setLoading(true);
 
-    if (!isLogin && formData.password !== formData.confirmPassword) {
-      setErrorMsg("Passwords do not match!");
-      setLoading(false);
-      return;
-    }
+  // 🚀 DEV MODE: SKIP AUTH
+  if (DEV_BYPASS_AUTH) {
+    const mockUser = {
+      id: 'dev-user-001',
+      email: 'dev@homiies.com',
+      user_metadata: {
+        full_name: 'Dev User',
+      },
+    };
 
-    try {
-      if (isLogin) {
-        const { error } = await supabase.auth.signInWithPassword({
-          email: formData.email,
-          password: formData.password,
-        });
-        if (error) throw error;
-      } else {
-        const { error } = await supabase.auth.signUp({
-          email: formData.email,
-          password: formData.password,
-          options: {
-            data: { full_name: formData.fullName }
-          }
-        });
-        if (error) throw error;
-        else setErrorMsg("Check your email for verification link!");
-      }
-    } catch (err: any) {
-      setErrorMsg(err.message || "Authentication failed.");
-    } finally {
-      setLoading(false);
+    onLogin(mockUser); // ✅ NOW THIS WORKS
+    setLoading(false);
+    return;
+  }
+
+  // 🔐 REAL AUTH (Production)
+  if (!isLogin && formData.password !== formData.confirmPassword) {
+    setErrorMsg("Passwords do not match!");
+    setLoading(false);
+    return;
+  }
+
+  try {
+    if (isLogin) {
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email: formData.email,
+        password: formData.password,
+      });
+      if (error) throw error;
+
+      onLogin(data.user); // real login
+    } else {
+      const { error } = await supabase.auth.signUp({
+        email: formData.email,
+        password: formData.password,
+        options: {
+          data: { full_name: formData.fullName }
+        }
+      });
+      if (error) throw error;
+
+      setErrorMsg("Check your email for verification link!");
     }
-  };
+  } catch (err: any) {
+    setErrorMsg(err.message || "Authentication failed.");
+  } finally {
+    setLoading(false);
+  }
+};
+
+
 
   const inputClasses = "w-full h-10 md:h-12 bg-white/5 border border-white/10 rounded-none px-10 text-white font-bold placeholder:text-white/20 focus:border-ludo-red focus:bg-white/10 outline-none transition-all text-xs";
   const iconClasses = "absolute left-3 top-1/2 -translate-y-1/2 text-white/20 group-focus-within:text-ludo-red transition-colors";

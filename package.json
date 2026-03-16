@@ -5,16 +5,20 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "vite build",
-    "preview": "vite preview"
+    "server": "node server.js",
+    "build": "npm install && vite build",
+    "preview": "vite preview",
+    "start": "node server.js"
   },
   "dependencies": {
+    "@supabase/supabase-js": "^2.45.1",
+    "clsx": "^2.1.1",
+    "express": "^5.2.1",
+    "framer-motion": "^12.23.25",
+    "lucide-react": "^0.555.0",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
-    "lucide-react": "^0.555.0",
-    "framer-motion": "^12.23.25",
-    "clsx": "^2.1.1",
-    "@supabase/supabase-js": "^2.45.1",
+    "socket.io": "^4.8.3",
     "socket.io-client": "^4.7.5"
   },
   "devDependencies": {
@@ -22,5 +26,13 @@
     "@vitejs/plugin-react": "^5.0.0",
     "typescript": "~5.8.2",
     "vite": "^6.2.0"
-  }
+  },
+  "description": "<div align=\"center\">\r <img width=\"1200\" height=\"475\" alt=\"GHBanner\" src=\"https://github.com/user-attachments/assets/0aa67016-6eaf-458a-adb2-6e31a0763ed6\" />\r </div>",
+  "main": "server.js",
+  "directories": {
+    "lib": "lib"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC"
 }
