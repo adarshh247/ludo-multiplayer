@@ -22,8 +22,8 @@ const __dirname = path.dirname(__filename);
 const server = http.createServer(app);
 
 // Configure Socket.io with CORS to allow your frontend port
-//const io = new Server(server, {
-const io = require("socket.io")(server, {
+const io = new Server(server, {
+//const io = require("socket.io")(server, {
   cors: {
     origin: "*",
     //origin: ["http://localhost:5173", "http://127.0.0.1:5173"], // Add your Vite/React dev port
