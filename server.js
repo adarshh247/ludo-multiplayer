@@ -34,10 +34,13 @@ const io = new Server(server, {
 
 const PORT = process.env.PORT || 3001;
 
-// Serve static files from the root or 'dist' folder
-app.use(express.static(path.resolve("./")));
+console.log("Serving files from:", path.join(__dirname, 'dist'));
 
-app.get("/", (req, res) => {
+// Serve static files from the root or 'dist' folder
+//app.use(express.static(path.resolve("./")));
+app.use(express.static(path.join(__dirname, 'dist')));
+
+app.get("/{*splat}", (req, res) => {
   console.log(`[HTTP] Root route accessed by: ${req.ip}`);
   res.sendFile(path.join(__dirname, "index.html"));
 });
